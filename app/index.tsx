@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import axios from 'axios';
+import { API_HOST } from '@env';
 
 export default function App() {
     const [loginInput, setLoginInput] = useState<string>('');
@@ -12,7 +13,7 @@ export default function App() {
     // Cadastro: email + username + password
     const handleRegister = async () => {
         try {
-            const response = await axios.post('http://localhost/api/register.php', { 
+            const response = await axios.post(`${API_HOST}/register.php`, {
                 email, 
                 username, 
                 password 
@@ -26,7 +27,7 @@ export default function App() {
     // Login: email ou username + password
     const handleLogin = async () => {
         try {
-            const response = await axios.post('http://localhost/api/login.php', { 
+            const response = await axios.post(`${API_HOST}/login.php`, {
                 user: loginInput,
                 password 
             });
@@ -39,7 +40,8 @@ export default function App() {
     // Recuperação: email
     const handleRecover = async () => {
         try {
-            const response = await axios.post('http://localhost/api/recover.php', { email: loginInput });
+            const response = await axios.post(`${API_HOST}/recover.php`,
+                { email: loginInput });
             setMessage(response.data.message);
         } catch (error) {
             setMessage('Erro ao recuperar senha.');
