@@ -27,6 +27,9 @@ if(empty($email)) {
     exit;
 }
 
+$result = recoverPassword($pdo, $email);
+echo json_encode($result);
+
 function recoverPassword($pdo, $email) {
     // Verifica se o email existe
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
@@ -37,7 +40,36 @@ function recoverPassword($pdo, $email) {
         return ['status' => 'error', 'message' => 'Email não encontrado'];
     }
 
-    // Aqui você pode implementar a lógica de recuperação, como enviar um email com um link de redefinição
-    // Por simplicidade, vamos apenas retornar uma mensagem de sucesso
+    $token = bin2hex(random_bytes(16));
+    $stmt = $pdo->prepare("UPDATE users SET recovery_token = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?");
+    $stmt->execute([$token, $email]);
+
+    $reset_link = "https://linkteste.com/reset-password?token=$token&email=" . urlencode($email);
+
+    $mail = new PHPMailer(true);
+    try {
+
+        $mail->isSMTP();
+        $mail->Host = $_ENV['MAIL_HOST'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $_ENV['MAIL_USERNAME'];
+        $mail->Password = $_ENV['MAIL_PASSWORD'];
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = $_ENV['MAIL_PORT'];
+        $mail->setFrom($_ENV['MAIL_FROM'], $_ENV['MAIL_FROM_NAME']);
+        $mail->addAddress($email, $user['username']);
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Subject = 'Recuperação de Senha';
+        $mail->Body = "Olá, <br> Para recuperar sua senha, clique no link abaixo: <br> <a href='$reset_link'>Recuperar Senha</a> <br> Se você não solicitou essa recuperação, ignore este e-mail.";
+        $mail->send();
+        $mail->clearAddresses();
+
+        return ['status' => 'success', 'message' => 'Instruções de recuperação enviadas para o email'];
+
+    } catch (Exception $e) {
+        return ['status' => 'error', 'message' => 'Erro ao enviar e-mail: ' . $mail->ErrorInfo];
+    }
+
     return ['status' => 'success', 'message' => 'Instruções de recuperação enviadas para o email'];
 }
